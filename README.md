@@ -1,18 +1,22 @@
 <div align="center">
 <img alt="sahtoutcms_logo" src="https://github.com/user-attachments/assets/2e48672b-3763-4229-bce2-cc0a0f9da15a" />
 <br>
+
+> [!IMPORTANT]
+> 🚀 **SahtoutCMS Premium is coming very soon!** A powerful premium edition of SahtoutCMS is almost ready. Stay tuned more info will be shared on Discord. 👀
+
 # SahtoutCMS V2
 
 ### A modern World of Warcraft website CMS for AzerothCore WotLK 3.3.5
 
 <p align="center">
-  <a href="https://github.com/blodyiheb/SahtoutCMS">
+  <a href="https://github.com/sahtoutdev/SahtoutCMS" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repository" />
   </a>
-  <a href="https://discord.com/invite/chxXTXXQ6M">
+  <a href="https://discord.com/invite/chxXTXXQ6M" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/Discord-Join%20Server-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" />
   </a>
-  <a href="https://www.youtube.com/watch?v=wHZypMui6aQ">
+  <a href="https://www.youtube.com/watch?v=OcJ7HNdC2Rs" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/badge/YouTube-Watch%20Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube Demo" />
   </a>
 </p>
@@ -20,7 +24,6 @@
 <p align="center">
 
 ![Version](https://img.shields.io/badge/version-2.x-2ea44f?style=flat-square)
-![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=flat-square\&logo=php\&logoColor=white)
 ![AzerothCore](https://img.shields.io/badge/AzerothCore-WotLK%203.3.5-orange?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 

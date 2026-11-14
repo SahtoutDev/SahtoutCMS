@@ -78,6 +78,10 @@ return [
     'admin_chars_class_icon_alt' => 'Class Icon',
     'admin_chars_faction_icon_alt' => 'Faction Icon',
     'admin_chars_status_online' => 'Online',
-    'admin_chars_status_offline' => 'Offline'
+    'admin_chars_status_offline' => 'Offline',
+
+    'admin_chars_level_online' => 'Cannot change level for %s: Character is online.',
+    'admin_chars_teleport_online' => 'Cannot teleport %s: Character is online.',
+    'admin_chars_total' => 'total',
 ];
 ?>

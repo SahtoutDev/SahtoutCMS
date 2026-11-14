@@ -142,5 +142,7 @@ return [
     'admin_users_permission_denied' => 'Vous n\'avez pas la permission d\'effectuer cette action.',
     'admin_users_user_not_found' => 'L\'utilisateur demandé n\'a pas été trouvé.',
     'admin_users_server_error' => 'Erreur serveur. Veuillez réessayer plus tard.',
+
+    'admin_users_permission_denied_gmlevel' => 'Permission refusée : seuls les administrateurs peuvent attribuer ou modifier les niveaux MJ.',
 ];
 ?>

@@ -78,6 +78,10 @@ return [
     'admin_chars_class_icon_alt' => 'Klassen-Symbol',
     'admin_chars_faction_icon_alt' => 'Fraktions-Symbol',
     'admin_chars_status_online' => 'Online',
-    'admin_chars_status_offline' => 'Offline'
+    'admin_chars_status_offline' => 'Offline',
+
+    'admin_chars_level_online' => 'Level für %s kann nicht geändert werden: Charakter ist online.',
+    'admin_chars_teleport_online' => '%s kann nicht teleportiert werden: Charakter ist online.',
+    'admin_chars_total' => 'gesamt',
 ];
 ?>

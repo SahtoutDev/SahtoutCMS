@@ -109,5 +109,8 @@ return [
     'admin_shop_js_invalid_level_boost' => 'El aumento de nivel debe estar entre 2 y 255.',
     'admin_shop_edit_button' => 'Editar',
     'admin_shop_delete_button' => 'Eliminar',
+
+    'admin_shop_csrf_error' => 'Falló la validación del token CSRF.',
+    'admin_shop_invalid_itemset_id' => 'ID de conjunto de objetos no válido',
 ];
 ?>

@@ -272,5 +272,7 @@ return [
     'playerbots_db_missing' => 'Playerbot database not found. Bot statistics are unavailable.',
     'playerbots_db_table_missing' => 'Playerbots database/table not detected. Bot statistics are unavailable until acore_playerbots.playerbots_account_type is available.',
     'warn_playerbots_missing' => 'Playerbots database/table not detected. The <code>humans_only</code> filter cannot exclude Playerbots until <code>acore_playerbots.playerbots_account_type</code> is available.',
+
+    'settings_nav_armory' => 'Armory',
 ];
 ?>

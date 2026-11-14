@@ -270,5 +270,7 @@ return [
     'playerbots_db_missing' => 'База данных Playerbot не найдена. Статистика ботов недоступна.',
     'playerbots_db_table_missing' => 'База данных или таблица Playerbots не обнаружены. Статистика ботов недоступна, пока acore_playerbots.playerbots_account_type недоступен.',
     'warn_playerbots_missing' => 'База данных или таблица Playerbots не обнаружены. Фильтр <code>humans_only</code> не может исключать Playerbots, пока <code>acore_playerbots.playerbots_account_type</code> недоступен.',
+
+    'settings_nav_armory' => 'Оружейная',
 ];
 ?>

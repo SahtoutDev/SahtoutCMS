@@ -40,5 +40,7 @@ return [
 
     // Buttons
     'btn_save_recaptcha' => 'Enregistrer les paramètres reCAPTCHA',
+
+    'err_invalid_csrf' => 'Jeton CSRF invalide.',
 ];
 ?>

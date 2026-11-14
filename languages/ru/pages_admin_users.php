@@ -142,5 +142,7 @@ return [
     'admin_users_permission_denied' => 'У вас нет прав для выполнения этого действия.',
     'admin_users_user_not_found' => 'Запрашиваемый пользователь не найден.',
     'admin_users_server_error' => 'Ошибка сервера. Пожалуйста, попробуйте позже.',
+
+    'admin_users_permission_denied_gmlevel' => 'Доступ запрещён: только администраторы могут назначать или изменять уровень GM.',
 ];
 ?>

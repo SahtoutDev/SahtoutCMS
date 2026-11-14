@@ -109,5 +109,8 @@ return [
     'admin_shop_js_invalid_level_boost' => '等级提升必须在2到255之间。',
     'admin_shop_edit_button' => '编辑',
     'admin_shop_delete_button' => '删除',
+
+    'admin_shop_csrf_error' => 'CSRF 令牌验证失败。',
+    'admin_shop_invalid_itemset_id' => '无效的物品套装 ID',
 ];
 ?>

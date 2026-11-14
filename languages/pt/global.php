@@ -376,5 +376,7 @@ return [
     'playerbots_db_missing' => 'Banco de dados do Playerbot não encontrado. As estatísticas de bots não estão disponíveis.',
     'playerbots_db_table_missing' => 'Banco de dados ou tabela de Playerbots não detectados. As estatísticas de bots não estarão disponíveis até que acore_playerbots.playerbots_account_type esteja disponível.',
     'warn_playerbots_missing' => 'Banco de dados ou tabela de Playerbots não detectados. O filtro <code>humans_only</code> não pode excluir Playerbots até que <code>acore_playerbots.playerbots_account_type</code> esteja disponível.',
+
+    'settings_nav_armory' => 'Armaria',
 ];
 ?>

@@ -270,5 +270,7 @@ return [
     'playerbots_db_missing' => 'Base de données Playerbot introuvable. Les statistiques des bots ne sont pas disponibles.',
     'playerbots_db_table_missing' => 'Base de données/table Playerbots non détectée. Les statistiques des bots ne sont pas disponibles tant que acore_playerbots.playerbots_account_type n\'est pas disponible.',
     'warn_playerbots_missing' => 'Base de données/table Playerbots non détectée. Le filtre <code>humans_only</code> ne peut pas exclure les Playerbots tant que <code>acore_playerbots.playerbots_account_type</code> n\'est pas disponible.',
+
+    'settings_nav_armory' => 'Armurerie',
 ];
 ?>

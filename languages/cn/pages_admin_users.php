@@ -142,5 +142,7 @@ return [
     'admin_users_permission_denied' => '您没有权限执行此操作。',
     'admin_users_user_not_found' => '未找到请求的用户。',
     'admin_users_server_error' => '服务器错误，请稍后重试。',
+
+    'admin_users_permission_denied_gmlevel' => '权限被拒绝：只有管理员可以分配或修改 GM 等级。',
 ];
 ?>

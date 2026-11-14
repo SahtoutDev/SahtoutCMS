@@ -45,5 +45,7 @@ return [
     'info_step_1' => '确保GM账户存在于您的Auth数据库中，并在<code>account_access</code>中具有GM等级3，且<code>RealmID = -1</code>。',
     'info_step_2' => '打开您的<code>worldserver.conf</code>文件并设置：<strong>SOAP.Enabled = 1</strong>',
     'info_step_3' => '确保<code>soap_url</code>中的SOAP端口正确且可访问。',
+
+    'error_invalid_csrf' => '无效的 CSRF 令牌。',
 ];
 ?>

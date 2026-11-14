@@ -142,5 +142,7 @@ return [
     'admin_users_permission_denied' => 'No tiene permiso para realizar esta acción.',
     'admin_users_user_not_found' => 'El usuario solicitado no fue encontrado.',
     'admin_users_server_error' => 'Error del servidor. Por favor, inténtelo de nuevo más tarde.',
+
+    'admin_users_permission_denied_gmlevel' => 'Permiso denegado: solo los administradores pueden asignar o modificar niveles de GM.',
 ];
 ?>

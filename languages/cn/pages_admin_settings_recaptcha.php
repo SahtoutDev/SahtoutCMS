@@ -40,5 +40,7 @@ return [
 
     // Buttons
     'btn_save_recaptcha' => '保存reCAPTCHA设置',
+
+    'err_invalid_csrf' => '无效的 CSRF 令牌。',
 ];
 ?>

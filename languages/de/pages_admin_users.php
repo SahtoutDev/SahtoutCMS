@@ -142,5 +142,7 @@ return [
     'admin_users_permission_denied' => 'Sie haben keine Berechtigung, diese Aktion durchzuführen.',
     'admin_users_user_not_found' => 'Der angeforderte Benutzer wurde nicht gefunden.',
     'admin_users_server_error' => 'Serverfehler. Bitte versuchen Sie es später erneut.',
+
+    'admin_users_permission_denied_gmlevel' => 'Zugriff verweigert: Nur Administratoren können GM-Stufen zuweisen oder ändern.',
 ];
 ?>

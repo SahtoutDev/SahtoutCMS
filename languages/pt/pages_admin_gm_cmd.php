@@ -11,5 +11,8 @@ return [
     // New keys for GM instructions
     'gm_command_instructions' => 'Insira seus comandos GM na caixa abaixo. Por exemplo: <code>.character level PlayerName 80</code>.',
     'gm_command_docs' => 'Para uma lista completa de comandos, consulte a <a href="https://www.azerothcore.org/wiki/gm-commands" target="_blank">Wiki de comandos GM do AzerothCore</a>.',
+
+    'error_csrf_token' => 'Token de segurança inválido ou ausente. Atualize a página e tente novamente.',
+    'page_description_soap' => 'Executar comandos GM SOAP para o servidor WoW Sahtout',
 ];
 ?>

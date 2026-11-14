@@ -109,5 +109,8 @@ return [
     'admin_shop_js_invalid_level_boost' => 'Level-Boost muss zwischen 2 und 255 liegen.',
     'admin_shop_edit_button' => 'Bearbeiten',
     'admin_shop_delete_button' => 'Löschen',
+
+    'admin_shop_csrf_error' => 'CSRF-Token-Validierung fehlgeschlagen.',
+    'admin_shop_invalid_itemset_id' => 'Ungültige Gegenstandsset-ID',
 ];
 ?>

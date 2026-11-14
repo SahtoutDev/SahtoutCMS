@@ -40,5 +40,7 @@ return [
 
     // Buttons
     'btn_save_recaptcha' => 'Save reCAPTCHA Settings',
+
+    'err_invalid_csrf' => 'Invalid CSRF token.',
 ];
 ?>

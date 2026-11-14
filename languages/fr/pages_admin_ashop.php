@@ -109,5 +109,8 @@ return [
     'admin_shop_js_invalid_level_boost' => 'L\'augmentation de niveau doit être comprise entre 2 et 255.',
     'admin_shop_edit_button' => 'Modifier',
     'admin_shop_delete_button' => 'Supprimer',
+
+    'admin_shop_csrf_error' => 'La validation du jeton CSRF a échoué.',
+    'admin_shop_invalid_itemset_id' => 'ID d\'ensemble d\'objets invalide',
 ];
 ?>

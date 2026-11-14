@@ -78,6 +78,10 @@ return [
     'admin_chars_class_icon_alt' => 'Icône de Classe',
     'admin_chars_faction_icon_alt' => 'Icône de Faction',
     'admin_chars_status_online' => 'En Ligne',
-    'admin_chars_status_offline' => 'Hors Ligne'
+    'admin_chars_status_offline' => 'Hors Ligne',
+
+    'admin_chars_level_online' => 'Impossible de modifier le niveau de %s : le personnage est en ligne.',
+    'admin_chars_teleport_online' => 'Impossible de téléporter %s : le personnage est en ligne.',
+    'admin_chars_total' => 'total',
 ];
 ?>

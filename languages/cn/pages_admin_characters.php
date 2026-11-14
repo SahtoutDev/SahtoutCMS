@@ -78,5 +78,9 @@ return [
     'admin_chars_class_icon_alt' => '职业图标',
     'admin_chars_faction_icon_alt' => '阵营图标',
     'admin_chars_status_online' => '在线',
-    'admin_chars_status_offline' => '离线'
+    'admin_chars_status_offline' => '离线',
+
+    'admin_chars_level_online' => '无法更改 %s 的等级：角色当前在线。',
+    'admin_chars_teleport_online' => '无法传送 %s：角色当前在线。',
+    'admin_chars_total' => '总计',
 ];

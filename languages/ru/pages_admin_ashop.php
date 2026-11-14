@@ -109,5 +109,8 @@ return [
     'admin_shop_js_invalid_level_boost' => 'Повышение уровня должно быть от 2 до 255.',
     'admin_shop_edit_button' => 'Редактировать',
     'admin_shop_delete_button' => 'Удалить',
+
+    'admin_shop_csrf_error' => 'Ошибка проверки CSRF-токена.',
+    'admin_shop_invalid_itemset_id' => 'Неверный ID комплекта предметов',
 ];
 ?>

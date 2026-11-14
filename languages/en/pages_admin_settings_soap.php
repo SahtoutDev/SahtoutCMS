@@ -45,5 +45,7 @@ return [
     'info_step_1' => 'Make sure the GM account exists in your Auth DB and has GM level 3 in <code>account_access</code> with <code>RealmID = -1</code>.',
     'info_step_2' => 'Open your <code>worldserver.conf</code> file and set: <strong>SOAP.Enabled = 1</strong>',
     'info_step_3' => 'Ensure the SOAP port in <code>soap_url</code> is correct and accessible.',
+
+    'error_invalid_csrf' => 'Invalid CSRF token.',
 ];
 ?>

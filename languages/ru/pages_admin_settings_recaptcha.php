@@ -40,5 +40,7 @@ return [
 
     // Buttons
     'btn_save_recaptcha' => 'Сохранить настройки reCAPTCHA',
+
+    'err_invalid_csrf' => 'Недействительный CSRF-токен.',
 ];
 ?>

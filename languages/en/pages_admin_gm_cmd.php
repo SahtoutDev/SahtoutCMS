@@ -11,5 +11,8 @@ return [
     // New keys for GM instructions
     'gm_command_instructions' => 'Enter your GM commands in the box below. For example: <code>.character level PlayerName 80</code>.',
     'gm_command_docs' => 'For a full list of commands, check the <a href="https://www.azerothcore.org/wiki/gm-commands" target="_blank">AzerothCore GM Commands Wiki</a>.',
+
+    'error_csrf_token' => 'Invalid or missing security token. Please refresh the page and try again.',
+    'page_description_soap' => 'Execute SOAP GM commands for Sahtout WoW Server',
 ];
 ?>

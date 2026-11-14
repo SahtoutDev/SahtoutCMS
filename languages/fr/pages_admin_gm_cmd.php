@@ -11,5 +11,8 @@ return [
     // New keys for GM instructions
     'gm_command_instructions' => 'Saisissez vos commandes GM dans la zone ci-dessous. Par exemple : <code>.character level PlayerName 80</code>.',
     'gm_command_docs' => 'Pour une liste complète des commandes, consultez le <a href="https://www.azerothcore.org/wiki/gm-commands" target="_blank">Wiki des commandes GM AzerothCore</a>.',
+
+    'error_csrf_token' => 'Jeton de sécurité invalide ou manquant. Veuillez actualiser la page et réessayer.',
+    'page_description_soap' => 'Exécuter des commandes MJ SOAP pour le serveur WoW Sahtout',
 ];
 ?>

@@ -102,5 +102,9 @@ return [
     // 🔹 Status
     'admin_chars_status_online' => 'En Línea',
     'admin_chars_status_offline' => 'Desconectado',
+
+    'admin_chars_level_online' => 'Não é possível alterar o nível de %s: o personagem está online.',
+    'admin_chars_teleport_online' => 'Não é possível teleportar %s: o personagem está online.',
+    'admin_chars_total' => 'total',
 ];
 ?>

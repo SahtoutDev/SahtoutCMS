@@ -78,6 +78,10 @@ return [
     'admin_chars_class_icon_alt' => 'Иконка класса',
     'admin_chars_faction_icon_alt' => 'Иконка фракции',
     'admin_chars_status_online' => 'Онлайн',
-    'admin_chars_status_offline' => 'Офлайн'
+    'admin_chars_status_offline' => 'Офлайн',
+
+    'admin_chars_level_online' => 'Невозможно изменить уровень для %s: персонаж в сети.',
+    'admin_chars_teleport_online' => 'Невозможно телепортировать %s: персонаж в сети.',
+    'admin_chars_total' => 'всего',
 ];
 ?>

@@ -271,5 +271,7 @@ return [
     'playerbots_db_missing' => '未找到 Playerbot 数据库。机器人统计不可用。',
     'playerbots_db_table_missing' => '未检测到 Playerbots 数据库或数据表。在 acore_playerbots.playerbots_account_type 可用之前，机器人统计不可用。',
     'warn_playerbots_missing' => '未检测到 Playerbots 数据库或数据表。在 <code>acore_playerbots.playerbots_account_type</code> 可用之前，<code>humans_only</code> 筛选器无法排除 Playerbots。',
+
+    'settings_nav_armory' => '英雄榜',
 ];
 ?>

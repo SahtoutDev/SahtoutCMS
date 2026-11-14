@@ -269,5 +269,7 @@ return [
     'playerbots_db_missing' => 'Playerbot-Datenbank nicht gefunden. Bot-Statistiken sind nicht verfügbar.',
     'playerbots_db_table_missing' => 'Playerbots-Datenbank/-Tabelle nicht erkannt. Bot-Statistiken sind nicht verfügbar, bis acore_playerbots.playerbots_account_type verfügbar ist.',
     'warn_playerbots_missing' => 'Playerbots-Datenbank/-Tabelle nicht erkannt. Der Filter <code>humans_only</code> kann Playerbots nicht ausschließen, bis <code>acore_playerbots.playerbots_account_type</code> verfügbar ist.',
+
+    'settings_nav_armory' => 'Arsenal',
 ];
 ?>

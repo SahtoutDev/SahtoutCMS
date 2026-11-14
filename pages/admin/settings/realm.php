@@ -24,19 +24,60 @@ $realmsFile = $project_root . 'includes/realm_config.php';
 
 $defaultLogo = 'img/logos/realm1_logo.webp';
 
-require_once $project_root . 'includes/realm_config.php';
+if (is_file($realmsFile)) {
+    require_once $realmsFile;
+}
 
-$currentRealm = $realmlist[0] ?? [
-    'name' => 'Sahtout Realm',
-    'address' => '127.0.0.1',
-    'check_address' => '127.0.0.1',
-    'port' => 8085,
-    'logo' => $defaultLogo
+$fallbackRealm = $realmlist[0] ?? [
+    'id'             => 1,
+    'name'           => 'Sahtout Realm',
+    'address'        => '127.0.0.1',
+    'check_address'  => '127.0.0.1',
+    'port'           => 8085,
+    'logo'           => $defaultLogo,
+    'player_display' => 'all'
 ];
 
+$realmId = (int)($fallbackRealm['id'] ?? 1);
+if ($realmId <= 0) {
+    $realmId = 1;
+}
+
+$currentRealm = $fallbackRealm;
+$currentRealm['id'] = $realmId;
+
+// Load live realm configuration from acore_auth.realmlist as the single source of truth.
+if (isset($auth_db) && $auth_db instanceof mysqli) {
+    try {
+        $stmt = $auth_db->prepare('SELECT id, name, address, localAddress, port FROM realmlist WHERE id = ? LIMIT 1');
+        $stmt->bind_param('i', $realmId);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $dbRow = $res ? $res->fetch_assoc() : null;
+        $stmt->close();
+
+        if (!$dbRow) {
+            $resFallback = $auth_db->query('SELECT id, name, address, localAddress, port FROM realmlist ORDER BY id ASC LIMIT 1');
+            $dbRow = $resFallback ? $resFallback->fetch_assoc() : null;
+        }
+
+        if ($dbRow) {
+            $realmId = (int)$dbRow['id'];
+            $currentRealm['id'] = $realmId;
+            $currentRealm['name'] = (string)$dbRow['name'];
+            $currentRealm['address'] = (string)$dbRow['address'];
+            $currentRealm['local_address'] = (string)($dbRow['localAddress'] ?? '127.0.0.1');
+            $currentRealm['port'] = (int)$dbRow['port'];
+        }
+    } catch (mysqli_sql_exception $e) {
+        error_log('Realm settings DB load error: ' . $e->getMessage());
+    }
+}
+
+$currentLocalAddress = $currentRealm['local_address'] ?? '127.0.0.1';
 // Backward compatible: when an older config only defines 'address',
 // use it as the status check address until the admin saves the new field.
-$currentCheckAddress = $currentRealm['check_address'] ?? $currentRealm['address'] ?? '127.0.0.1';
+$currentCheckAddress = $currentRealm['check_address'] ?? $currentLocalAddress ?? $currentRealm['address'] ?? '127.0.0.1';
 
 /**
  * Accepts IPv4 addresses, IPv6 addresses (including URL-style brackets),
@@ -70,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $realmName = trim($_POST['realm_name'] ?? '');
         $realmAddress = trim($_POST['realm_address'] ?? '');
+        $realmLocalAddress = trim($_POST['realm_local_address'] ?? $currentLocalAddress);
         $realmCheckAddress = trim($_POST['realm_check_address'] ?? $currentCheckAddress);
         $realmPort = (int) ($_POST['realm_port'] ?? 0);
         $playerDisplay = $_POST['player_display'] ?? 'all';
@@ -81,11 +123,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($realmName)) {
             $errors[] = translate('err_realm_name_required', 'Realm Name is required.');
+        } elseif (strlen($realmName) > 32) {
+            $errors[] = translate('err_realm_name_length', 'Realm Name must be 32 characters or fewer.');
         }
         if (empty($realmAddress)) {
-            $errors[] = translate('err_realm_ip_required', 'Realm Address / Host is required.');
+            $errors[] = translate('err_realm_ip_required', 'Public Address is required.');
         } elseif (!isValidRealmHost($realmAddress)) {
-            $errors[] = translate('err_realm_ip_invalid', 'Realm Address / Host is invalid.');
+            $errors[] = translate('err_realm_ip_invalid', 'Public Address is invalid.');
+        }
+        if (empty($realmLocalAddress)) {
+            $errors[] = translate('err_realm_local_address_required', 'Local Address is required.');
+        } elseif (!isValidRealmHost($realmLocalAddress)) {
+            $errors[] = translate('err_realm_local_address_invalid', 'Local Address contains invalid characters.');
         }
         if (empty($realmCheckAddress)) {
             $errors[] = translate('err_realm_check_address_required', 'Status Check Address is required.');
@@ -136,11 +185,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        // Persist live realm settings to acore_auth.realmlist first (single source of truth).
+        if (!isset($auth_db) || !($auth_db instanceof mysqli)) {
+            $errors[] = translate('err_realm_db_unavailable', 'Auth database connection is unavailable.');
+        } else {
+            try {
+                $checkStmt = $auth_db->prepare('SELECT id FROM realmlist WHERE id = ? LIMIT 1');
+                $checkStmt->bind_param('i', $realmId);
+                $checkStmt->execute();
+                $checkRes = $checkStmt->get_result();
+                $exists = ($checkRes && $checkRes->num_rows > 0);
+                $checkStmt->close();
+
+                if ($exists) {
+                    $updateStmt = $auth_db->prepare('UPDATE realmlist SET name = ?, address = ?, localAddress = ?, port = ? WHERE id = ?');
+                    $updateStmt->bind_param('sssii', $realmName, $realmAddress, $realmLocalAddress, $realmPort, $realmId);
+                    $updateStmt->execute();
+                    $updateStmt->close();
+                } else {
+                    $insertStmt = $auth_db->prepare('INSERT INTO realmlist (id, name, address, localAddress, port) VALUES (?, ?, ?, ?, ?)');
+                    $insertStmt->bind_param('isssi', $realmId, $realmName, $realmAddress, $realmLocalAddress, $realmPort);
+                    $insertStmt->execute();
+                    $insertStmt->close();
+                }
+            } catch (mysqli_sql_exception $e) {
+                error_log('Realm settings DB save error: ' . $e->getMessage());
+                $errors[] = translate('err_realm_db_save', 'Failed to save realm settings to the auth database.');
+            }
+        }
+    }
+
+    if (empty($errors)) {
         $newRealmList = [
             [
-                'id'             => 1,
+                'id'             => $realmId,
                 'name'           => $realmName,
                 'address'        => $realmAddress,
+                'local_address'  => $realmLocalAddress,
                 'check_address'  => $realmCheckAddress,
                 'port'           => $realmPort,
                 'logo'           => $logo_path,
@@ -181,6 +262,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (function_exists('opcache_invalidate')) {
                     opcache_invalidate($realmsFile, true);
                 }
+
+                // Clear cached realm status so the frontend reflects the updated realm immediately.
+                $realmCacheFile = $project_root . 'cache/realm_' . $realmId . '.php';
+                if (is_file($realmCacheFile)) {
+                    @unlink($realmCacheFile);
+                }
+
+                $currentRealm = $newRealmList[0];
+                $currentLocalAddress = $realmLocalAddress;
+                $currentCheckAddress = $realmCheckAddress;
+                $currentPlayerDisplay = $playerDisplay;
 
                 $success = true;
                 $playerbotsMissing = !armory_playerbots_table_exists($char_db ?? null);
@@ -316,7 +408,7 @@ include $project_root . 'includes/header.php';
                         </h2>
 
                         <form method="POST" enctype="multipart/form-data" class="space-y-4 md:space-y-6 max-w-3xl mx-auto">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string)($_SESSION['csrf_token'] ?? '')); ?>">
                             <!-- Current Logo Preview -->
                             <div>
                                 <label class="form-label text-[#f2cf5b] font-bold text-sm 
@@ -338,23 +430,23 @@ include $project_root . 'includes/header.php';
                                                                  drop-shadow-[0_0_12px_rgba(201,162,39,.15),0_2px_4px_rgba(0,0,0,.8)]">
                                     <?php echo translate('label_realm_name', 'Realm Name'); ?>
                                 </label>
-                                <input type="text" id="realm_name" name="realm_name" maxlength="40" 
+                                <input type="text" id="realm_name" name="realm_name" maxlength="32" 
                                        class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] 
                                               bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm 
                                               focus:border-[#f2cf5b] focus:shadow-[0_0_10px_rgba(242,207,82,.2)] 
                                               focus:bg-[#0f141e]/90 outline-none transition-all duration-200 
                                               placeholder:text-[#96aac8]/40"
                                        placeholder="<?php echo translate('placeholder_realm_name', 'Enter realm name'); ?>" 
-                                       value="<?php echo htmlspecialchars($_POST['realm_name'] ?? $currentRealm['name']); ?>" 
+                                       value="<?php echo htmlspecialchars((string)($_POST['realm_name'] ?? $currentRealm['name'] ?? '')); ?>" 
                                        required>
                             </div>
 
-                            <!-- Realm Address / Host (player-facing) -->
+                            <!-- Public Address (realmlist.address) -->
                             <div>
                                 <label for="realm_address" class="form-label text-[#f2cf5b] font-bold text-sm 
                                                               tracking-wider block mb-2 
                                                               drop-shadow-[0_0_12px_rgba(201,162,39,.15),0_2px_4px_rgba(0,0,0,.8)]">
-                                    <?php echo translate('label_realm_ip', 'Realm Address / Host'); ?>
+                                    <?php echo translate('label_realm_ip', 'Public Address'); ?>
                                 </label>
                                 <input type="text" id="realm_address" name="realm_address" 
                                        class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] 
@@ -363,8 +455,29 @@ include $project_root . 'includes/header.php';
                                               focus:bg-[#0f141e]/90 outline-none transition-all duration-200 
                                               placeholder:text-[#96aac8]/40"
                                        placeholder="<?php echo translate('placeholder_realm_address', 'play.example.com'); ?>" 
-                                       value="<?php echo htmlspecialchars($_POST['realm_address'] ?? $currentRealm['address']); ?>" 
+                                       value="<?php echo htmlspecialchars((string)($_POST['realm_address'] ?? $currentRealm['address'] ?? '')); ?>" 
                                        required>
+                            </div>
+
+                            <!-- Local Address (realmlist.localAddress) -->
+                            <div>
+                                <label for="realm_local_address" class="form-label text-[#f2cf5b] font-bold text-sm 
+                                                              tracking-wider block mb-2 
+                                                              drop-shadow-[0_0_12px_rgba(201,162,39,.15),0_2px_4px_rgba(0,0,0,.8)]">
+                                    <?php echo translate('label_realm_local_address', 'Local Address'); ?>
+                                </label>
+                                <input type="text" id="realm_local_address" name="realm_local_address" 
+                                       class="w-full px-4 py-3 text-[0.95rem] text-[#e5e7eb] 
+                                              bg-[#0a0e16]/80 border border-[#c9a227]/30 rounded-sm 
+                                              focus:border-[#f2cf5b] focus:shadow-[0_0_10px_rgba(242,207,82,.2)] 
+                                              focus:bg-[#0f141e]/90 outline-none transition-all duration-200 
+                                              placeholder:text-[#96aac8]/40"
+                                       placeholder="<?php echo translate('placeholder_realm_local_address', '127.0.0.1'); ?>" 
+                                       value="<?php echo htmlspecialchars((string)($_POST['realm_local_address'] ?? $currentLocalAddress)); ?>" 
+                                       required>
+                                <p class="text-[#6a7a8a] text-xs mt-1.5">
+                                    <?php echo translate('note_realm_local_address', 'Used by the auth server for local/LAN players (realmlist.localAddress), usually 127.0.0.1 or a LAN IP.'); ?>
+                                </p>
                             </div>
 
                             <!-- Status Check Address (internal only) -->
@@ -381,7 +494,7 @@ include $project_root . 'includes/header.php';
                                               focus:bg-[#0f141e]/90 outline-none transition-all duration-200 
                                               placeholder:text-[#96aac8]/40"
                                        placeholder="<?php echo translate('placeholder_realm_check_address', '127.0.0.1'); ?>" 
-                                       value="<?php echo htmlspecialchars($_POST['realm_check_address'] ?? $currentCheckAddress); ?>" 
+                                       value="<?php echo htmlspecialchars((string)($_POST['realm_check_address'] ?? $currentCheckAddress)); ?>" 
                                        required>
                                 <p class="text-[#6a7a8a] text-xs mt-1.5">
                                     <?php echo translate('note_realm_check_address', 'Used internally by the website to check if the server is online. Usually 127.0.0.1 when the website and game server run on the same machine.'); ?>

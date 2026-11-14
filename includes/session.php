@@ -1,4 +1,9 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
+
 // Detect HTTPS properly (works with proxies & Cloudflare)
 $is_https = false;
 if (
@@ -77,7 +82,7 @@ if (in_array($current_page, $protected_pages) || in_array($current_page, $admin_
     $stmt->bind_param('i', $_SESSION['user_id']);
     $stmt->execute();
     $result = $stmt->get_result();
-    $_SESSION['role'] = $result->num_rows === 1 ? $result->fetch_assoc()['role'] : 'player';
+    $_SESSION['role'] = $result->num_rows === 1 ? ($result->fetch_assoc()['role'] ?? 'player') : 'player';
     $stmt->close();
 
     // Load GM level
@@ -86,11 +91,11 @@ if (in_array($current_page, $protected_pages) || in_array($current_page, $admin_
     $stmt->bind_param('i', $_SESSION['user_id']);
     $stmt->execute();
     $result = $stmt->get_result();
-    $_SESSION['gmlevel'] = $result->num_rows > 0 ? $result->fetch_assoc()['gmlevel'] : 0;
+    $_SESSION['gmlevel'] = $result->num_rows > 0 ? ($result->fetch_assoc()['gmlevel'] ?? 0) : 0;
     $stmt->close();
 
     // Restrict admin pages to admin or moderator
-    if (in_array($current_page, $admin_pages) && !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+    if (in_array($current_page, $admin_pages) && !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'])) {
         $_SESSION['debug_errors'] = ["Unauthorized access to admin page."];
         header('Location: ' . $base_path . 'login?error=unauthorized');
         exit();

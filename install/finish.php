@@ -20,6 +20,15 @@ foreach ($configFiles as $name => $path) {
         $errors[] = translate('err_config_missing', 'Configuration file missing:') . ' ' . basename($path);
     }
 }
+
+// Write the install lock as soon as the installation is complete so every
+// installer endpoint is refused from now on.
+if (empty($errors) && !is_file(__DIR__ . '/install.lock')) {
+    @file_put_contents(
+        __DIR__ . '/install.lock',
+        "SahtoutCMS installation locked at " . gmdate('c') . "\nDelete install/install.lock on the server only when performing an authorized reinstallation.\n"
+    );
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($langCode ?? 'en') ?>">

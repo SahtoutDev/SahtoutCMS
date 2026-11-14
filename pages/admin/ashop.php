@@ -5,7 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     header("Location: {$base_path}login");
     exit;
 }
@@ -24,34 +24,48 @@ $valid_categories = ['Mount', 'Pet', 'Gold', 'Service', 'Stuff', 'Set'];
 
 // Fetch all available site items for Mount, Pet, Stuff dropdown
 $site_items = [];
-$sql = "SELECT entry, name FROM site_items ORDER BY name";
-$stmt = $site_db->prepare($sql);
-if ($stmt->execute()) {
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $site_items[] = $row;
+try {
+    $sql = "SELECT entry, name FROM site_items ORDER BY name";
+    $stmt = $site_db->prepare($sql);
+    if ($stmt && $stmt->execute()) {
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $site_items[] = $row;
+        }
     }
+    if ($stmt) {
+        $stmt->close();
+    }
+} catch (mysqli_sql_exception $e) {
+    error_log("Error fetching site_items in ashop: " . $e->getMessage());
+    $site_items = [];
 }
-$stmt->close();
 
 // Preload item set composition for admin preview.
 $site_itemsets = [];
-$sql = "SELECT itemset, entry, name FROM site_items WHERE itemset > 0 ORDER BY itemset, entry";
-$stmt = $site_db->prepare($sql);
-if ($stmt->execute()) {
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $itemset_id = (int)$row['itemset'];
-        if (!isset($site_itemsets[$itemset_id])) {
-            $site_itemsets[$itemset_id] = [];
+try {
+    $sql = "SELECT itemset, entry, name FROM site_items WHERE itemset > 0 ORDER BY itemset, entry";
+    $stmt = $site_db->prepare($sql);
+    if ($stmt && $stmt->execute()) {
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $itemset_id = (int)$row['itemset'];
+            if (!isset($site_itemsets[$itemset_id])) {
+                $site_itemsets[$itemset_id] = [];
+            }
+            $site_itemsets[$itemset_id][] = [
+                'entry' => (int)$row['entry'],
+                'name' => $row['name']
+            ];
         }
-        $site_itemsets[$itemset_id][] = [
-            'entry' => (int)$row['entry'],
-            'name' => $row['name']
-        ];
     }
+    if ($stmt) {
+        $stmt->close();
+    }
+} catch (mysqli_sql_exception $e) {
+    error_log("Error fetching site_itemsets in ashop: " . $e->getMessage());
+    $site_itemsets = [];
 }
-$stmt->close();
 
 // CSRF token is generated centrally in includes/session.php
 
@@ -217,13 +231,13 @@ if (isset($_GET['status'])) {
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', (string)$_POST['csrf_token'])) {
         header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_csrf_error', 'CSRF token validation failed.')));
         exit;
     }
 
     if (isset($_POST['action'])) {
-        $action = $_POST['action'];
+        $action = $_POST['action'] ?? '';
         
         if ($action === 'add' || $action === 'edit') {
             $item_id = isset($_POST['item_id']) ? (int)$_POST['item_id'] : null;
@@ -277,13 +291,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         exit;
                     }
 
-                    $sql = "SELECT COUNT(*) FROM site_items WHERE itemset = ?";
-                    $stmt = $site_db->prepare($sql);
-                    $stmt->bind_param("i", $itemset_id);
-                    $stmt->execute();
-                    $stmt->bind_result($count);
-                    $stmt->fetch();
-                    $stmt->close();
+                    $count = 0;
+                    try {
+                        $sql = "SELECT COUNT(*) FROM site_items WHERE itemset = ?";
+                        $stmt = $site_db->prepare($sql);
+                        if ($stmt) {
+                            $stmt->bind_param("i", $itemset_id);
+                            $stmt->execute();
+                            $stmt->bind_result($count);
+                            $stmt->fetch();
+                            $stmt->close();
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        error_log("Error validating itemset in ashop: " . $e->getMessage());
+                        $count = 0;
+                    }
                     if ($count == 0) {
                         header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_itemset_id', 'Invalid item set ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                         exit;
@@ -297,13 +319,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         exit;
                     }
 
-                    $sql = "SELECT COUNT(*) FROM site_items WHERE entry = ?";
-                    $stmt = $site_db->prepare($sql);
-                    $stmt->bind_param("i", $entry);
-                    $stmt->execute();
-                    $stmt->bind_result($count);
-                    $stmt->fetch();
-                    $stmt->close();
+                    $count = 0;
+                    try {
+                        $sql = "SELECT COUNT(*) FROM site_items WHERE entry = ?";
+                        $stmt = $site_db->prepare($sql);
+                        if ($stmt) {
+                            $stmt->bind_param("i", $entry);
+                            $stmt->execute();
+                            $stmt->bind_result($count);
+                            $stmt->fetch();
+                            $stmt->close();
+                        }
+                    } catch (mysqli_sql_exception $e) {
+                        error_log("Error validating entry in ashop: " . $e->getMessage());
+                        $count = 0;
+                    }
                     if ($count == 0) {
                         header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode(translate('admin_shop_invalid_entry_id', 'Invalid entry ID')) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                         exit;
@@ -411,6 +441,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $is_set = 0;
             }
 
+            $stmt = null;
             try {
                 if ($action === 'add') {
                     $sql = "INSERT INTO shop_items (category, name, description, image, point_cost, token_cost, stock, entry, gold_amount, level_boost, at_login_flags, is_item, is_set, itemset_id) 
@@ -434,10 +465,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             } finally {
-                if (isset($stmt)) $stmt->close();
+                if ($stmt instanceof mysqli_stmt) {
+                    try { $stmt->close(); } catch (Throwable $ignored) {}
+                }
             }
         } elseif ($action === 'delete') {
-            $item_id = (int)$_POST['item_id'];
+            $item_id = (int)($_POST['item_id'] ?? 0);
+            $stmt = null;
             try {
                 $sql = "SELECT image FROM shop_items WHERE item_id = ?";
                 $stmt = $site_db->prepare($sql);
@@ -471,7 +505,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("Location: {$base_path}admin/ashop?status=error&message=" . urlencode($e->getMessage()) . "&page=$page" . ($category_filter ? "&category=$category_filter" : "") . ($search_query ? "&search=" . urlencode($search_query) : ""));
                 exit;
             } finally {
-                if (isset($stmt)) $stmt->close();
+                if ($stmt instanceof mysqli_stmt) {
+                    try { $stmt->close(); } catch (Throwable $ignored) {}
+                }
             }
         }
     }
@@ -503,8 +539,8 @@ try {
     $count_stmt->execute();
     $count_result = $count_stmt->get_result();
     if ($count_result) {
-        $total_items = $count_result->fetch_assoc()['total'];
-        $total_pages = ceil($total_items / $items_per_page);
+        $total_items = (int)($count_result->fetch_assoc()['total'] ?? 0);
+        $total_pages = max(1, (int)ceil($total_items / $items_per_page));
     }
     $count_stmt->close();
 } catch (Exception $e) {
@@ -513,6 +549,7 @@ try {
 
 // Fetch shop items for current page
 $items = [];
+$stmt = null;
 try {
     $sql = "SELECT si.*, sit.name as entry_name, sis.set_item_count
             FROM shop_items si
@@ -555,7 +592,9 @@ try {
 } catch (Exception $e) {
     error_log("Error fetching shop items: " . $e->getMessage(), 3, $project_root . 'logs/upload_errors.log');
 } finally {
-    if (isset($stmt)) $stmt->close();
+    if ($stmt instanceof mysqli_stmt) {
+        try { $stmt->close(); } catch (Throwable $ignored) {}
+    }
 }
 ?>
 <?php
@@ -937,7 +976,7 @@ ob_start();
                             <input type="hidden" name="action" value="add" id="formAction">
                             <input type="hidden" name="item_id" id="item_id">
                             <input type="hidden" name="existing_image" id="existing_image">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 <!-- Category -->
@@ -1176,7 +1215,7 @@ ob_start();
                                                             <form method="POST" class="flex justify-end gap-4">
                                                                 <input type="hidden" name="action" value="delete">
                                                                 <input type="hidden" name="item_id" value="<?php echo $row['item_id']; ?>">
-                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
                                                                 <button type="button" class="btn-game btn-iron" onclick="closeModal('deleteModal-<?php echo $row['item_id']; ?>')">
                                                                     <?php echo translate('admin_shop_cancel_button', 'Cancel'); ?>
                                                                 </button>

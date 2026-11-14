@@ -12,7 +12,7 @@ define('DB_CHAR', $db_char_name);
 define('DB_WORLD', $db_world_name);
 define('DB_SITE', $db_site_name);
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     header("Location: {$base_path}login");
     exit;
 }

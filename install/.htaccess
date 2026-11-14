@@ -1,5 +1,21 @@
+Options -Indexes
+
+<FilesMatch "(^install\.lock$|\.inc\.php$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
 # Enable URL rewriting
 RewriteEngine On
+
+# Deny all HTTP access (GET, POST, etc.) to installer scripts after installation
+RewriteCond %{DOCUMENT_ROOT}/install/install.lock -f
+RewriteRule ^ - [F,L]
 
 # Only rewrite if the requested file or folder doesn't exist
 RewriteCond %{REQUEST_FILENAME} !-f

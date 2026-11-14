@@ -33,10 +33,14 @@ if ($result->num_rows > 0) {
 }
 $stmt->close();
 
-if (!in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     header("Location: {$base_path}login");
     exit;
 }
+
+// Privileged user management (website roles, points, tokens, GM levels) is
+// administrator-only; moderators keep ban/unban moderation only.
+$is_admin = (($_SESSION['role'] ?? '') === 'admin');
 
 // Handle search, sort, role filter, ban filter, and gmlevel filter
 $search_username = isset($_GET['search_username']) && $_GET['search_username'] !== '' ? trim($_GET['search_username']) : '';
@@ -61,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'update') {
         if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $update_message = alert_danger(translate('admin_users_csrf_error', 'CSRF token validation failed.'));
+        } elseif (!$is_admin) {
+            $update_message = alert_danger(translate('admin_users_permission_denied', 'Permission denied: only administrators can modify user accounts, points, tokens or roles.'));
         } else {
             $account_id = (int)$_POST['account_id'];
             $points = (int)$_POST['points'];
@@ -109,7 +115,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $success = $stmt->execute();
                 $stmt->close();
             } elseif ($ban_action === 'change_gm_role' && $gmlevel !== '') {
-                if ($gmlevel === 'player') {
+                if (!$is_admin) {
+                    $success = false;
+                    $update_message = alert_danger(translate('admin_users_permission_denied_gmlevel', 'Permission denied: only administrators can assign or modify GM levels.'));
+                } elseif ($gmlevel === 'player') {
                     $stmt = $auth_db->prepare("DELETE FROM " . DB_AUTH . ".account_access WHERE id = ?");
                     $stmt->bind_param("i", $account_id);
                     $success = $stmt->execute();

@@ -13,7 +13,7 @@ function redirect_with_params(string $base, array $params = []) {
 }
 
 // Handle session check and redirect before any output
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     redirect_with_params("{$base_path}login");
 }
 
@@ -41,7 +41,7 @@ if (isset($_POST['delete_image']) && is_numeric($_POST['delete_image'])) {
         if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $errors[] = translate('err_invalid_csrf', 'Invalid CSRF token.');
         } else {
-            if (!in_array($_SESSION['role'], ['admin', 'moderator'])) {
+            if (!in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
                 $errors[] = translate('err_permission_denied', 'Permission denied.');
             } else {
                 $stmt = $site_db->prepare("SELECT button_image_url FROM vote_sites WHERE id = ?");
@@ -84,7 +84,7 @@ if (isset($_POST['delete']) && is_numeric($_POST['delete'])) {
         if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
             $errors[] = translate('err_invalid_csrf', 'Invalid CSRF token.');
         } else {
-            if (!in_array($_SESSION['role'], ['admin', 'moderator'])) {
+            if (!in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
                 $errors[] = translate('err_permission_denied', 'Permission denied.');
             } else {
                 $stmt = $site_db->prepare("SELECT button_image_url FROM vote_sites WHERE id = ?");
@@ -175,25 +175,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mkdir($upload_dir, 0755, true);
             }
             $file = $_FILES['button_image'];
-            $file_name = basename($file['name']);
-            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
             $file_size = $file['size'];
-            $new_file_name = uniqid('voteimg_') . '.' . $file_ext;
-            $upload_path = $upload_dir . $new_file_name;
 
             if ($file['error'] === UPLOAD_ERR_FORM_SIZE || $file['error'] === UPLOAD_ERR_INI_SIZE) {
                 $errors[] = translate('err_image_too_large', 'Image size must not exceed 1MB.');
             } elseif ($file['error'] !== UPLOAD_ERR_OK) {
                 $errors[] = translate('err_image_upload_failed', 'Image upload failed: ') . $file['error'];
-            } elseif ($file_size > $max_size) {
+            } elseif ($file_size <= 0 || $file_size > $max_size) {
                 $errors[] = translate('err_image_too_large', 'Image size must not exceed 1MB.');
             } else {
+                // The stored extension is derived from the verified MIME type; the
+                // client-supplied file name/extension is never used for the saved file.
+                $mime_ext_map = [
+                    'image/jpeg' => 'jpg',
+                    'image/png'  => 'png',
+                    'image/gif'  => 'gif',
+                ];
+                // finfo_close() is deprecated since PHP 8.5; the object is freed automatically.
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $file_type = finfo_file($finfo, $file['tmp_name']);
-                finfo_close($finfo);
-                if (!in_array($file_type, $allowed_types)) {
+                $file_type = $finfo ? finfo_file($finfo, $file['tmp_name']) : false;
+                $img_info = @getimagesize($file['tmp_name']);
+                $is_valid_image = is_string($file_type)
+                    && in_array($file_type, $allowed_types, true)
+                    && isset($mime_ext_map[$file_type])
+                    && $img_info !== false
+                    && !empty($img_info[0])
+                    && !empty($img_info[1])
+                    && in_array($img_info[2] ?? null, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_GIF], true);
+                if (!$is_valid_image) {
                     $errors[] = translate('err_invalid_image_type', 'Only JPEG, PNG, and GIF images are allowed.');
                 } else {
+                    $new_file_name = uniqid('voteimg_') . '.' . $mime_ext_map[$file_type];
+                    $upload_path = $upload_dir . $new_file_name;
                     if ($site_id > 0) {
                         $stmt = $site_db->prepare("SELECT button_image_url FROM vote_sites WHERE id = ?");
                         $stmt->bind_param("i", $site_id);

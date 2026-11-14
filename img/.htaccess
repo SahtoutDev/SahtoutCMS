@@ -1,0 +1,33 @@
+Options -Indexes -ExecCGI
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_flag engine off
+</IfModule>
+<IfModule php_module>
+    php_flag engine off
+</IfModule>
+<IfModule php7_module>
+    php_flag engine off
+</IfModule>
+<IfModule php8_module>
+    php_flag engine off
+</IfModule>
+
+<IfModule mod_mime.c>
+    RemoveHandler .php .php3 .php4 .php5 .php7 .php8 .phtml .phar .pl .py .cgi .fcgi .sh .bat .cmd
+    RemoveType .php .php3 .php4 .php5 .php7 .php8 .phtml .phar .pl .py .cgi .fcgi .sh .bat .cmd
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+<FilesMatch "(?i)\.(?:php[0-9]?|phtml|phar|pl|py|cgi|fcgi|sh|bat|cmd|exe|dll|jsp|asp|aspx|shtml|htaccess)$">
+    Require all denied
+</FilesMatch>

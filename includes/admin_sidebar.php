@@ -5,7 +5,7 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 require_once __DIR__ . '/paths.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     exit;
 }
 $page_class = $page_class ?? '';

@@ -5,9 +5,15 @@ require_once __DIR__ . '/../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id'])) {
     header("Location: {$base_path}login");
     exit;
+}
+
+// GM command execution is an administrator-only capability; moderators are refused
+if (!in_array($_SESSION['role'] ?? '', ['admin'], true)) {
+    http_response_code(403);
+    exit('403 Forbidden: GM command execution is restricted to administrators.');
 }
 
 $page_class = 'gm_cmd';
@@ -58,10 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>';
         } else {
             $response_output = '<div class="bg-black/30 p-4 rounded-sm border border-[rgba(201,162,39,0.1)] overflow-x-auto">
-                <pre class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words m-0">' . htmlspecialchars($response) . '</pre>
+                <pre class="text-green-400 text-sm font-mono whitespace-pre-wrap break-words m-0">' . htmlspecialchars((string)$response) . '</pre>
             </div>';
         }
-        curl_close($ch);
     } else {
         $response_output = '<div class="bg-yellow-900/40 border border-yellow-500/50 text-yellow-300 px-4 py-3 rounded-sm flex items-center gap-3">
             <i class="fas fa-exclamation-triangle"></i>

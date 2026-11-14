@@ -35,7 +35,7 @@ if ($result->num_rows > 0) {
 }
 $stmt->close();
 
-if (!in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     header("Location: {$base_path}login");
     exit;
 }

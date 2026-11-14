@@ -141,7 +141,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $cfg = "<?php\nif (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');\n\n";
+        $cfg  = "<?php\nif (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');\n\n";
+        $cfg .= "error_reporting(E_ALL);\n";
+        $cfg .= "ini_set('display_errors', '0');\n";
+        $cfg .= "ini_set('display_startup_errors', '0');\n";
+        $cfg .= "ini_set('log_errors', '1');\n\n";
         foreach ($dbGroups as $key => $g) {
             $p = "db_{$key}_";
             $cfg .= "\${$p}host = " . var_export($g['host'], true) . ";\n";
@@ -151,15 +155,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cfg .= "\${$p}name = " . var_export($g['name'], true) . ";\n\n";
         }
 
-        $cfg .= "\$auth_db  = new mysqli(\$db_auth_host,  \$db_auth_user,  \$db_auth_pass,  \$db_auth_name,  \$db_auth_port);\n";
-        $cfg .= "\$world_db = new mysqli(\$db_world_host, \$db_world_user, \$db_world_pass, \$db_world_name, \$db_world_port);\n";
-        $cfg .= "\$char_db  = new mysqli(\$db_char_host,  \$db_char_user,  \$db_char_pass,  \$db_char_name,  \$db_char_port);\n";
-        $cfg .= "\$site_db  = new mysqli(\$db_site_host,  \$db_site_user,  \$db_site_pass,  \$db_site_name,  \$db_site_port);\n\n";
-
-        $cfg .= "if (\$auth_db->connect_error)  die('Auth DB Connection failed: '  . \$auth_db->connect_error);\n";
-        $cfg .= "if (\$world_db->connect_error) die('World DB Connection failed: ' . \$world_db->connect_error);\n";
-        $cfg .= "if (\$char_db->connect_error)  die('Char DB Connection failed: '  . \$char_db->connect_error);\n";
-        $cfg .= "if (\$site_db->connect_error)  die('Site DB Connection failed: '  . \$site_db->connect_error);\n";
+        $cfg .= "try {\n";
+        $cfg .= "    \$auth_db  = new mysqli(\$db_auth_host,  \$db_auth_user,  \$db_auth_pass,  \$db_auth_name,  (int)\$db_auth_port);\n";
+        $cfg .= "    \$world_db = new mysqli(\$db_world_host, \$db_world_user, \$db_world_pass, \$db_world_name, (int)\$db_world_port);\n";
+        $cfg .= "    \$char_db  = new mysqli(\$db_char_host,  \$db_char_user,  \$db_char_pass,  \$db_char_name,  (int)\$db_char_port);\n";
+        $cfg .= "    \$site_db  = new mysqli(\$db_site_host,  \$db_site_user,  \$db_site_pass,  \$db_site_name,  (int)\$db_site_port);\n";
+        $cfg .= "} catch (mysqli_sql_exception \$e) {\n";
+        $cfg .= "    error_log('Database connection failed: ' . \$e->getMessage());\n";
+        $cfg .= "    if (!headers_sent()) { http_response_code(500); }\n";
+        $cfg .= "    exit('Database connection error.');\n";
+        $cfg .= "}\n\n";
+        $cfg .= "if (\$auth_db->connect_error || \$world_db->connect_error || \$char_db->connect_error || \$site_db->connect_error) {\n";
+        $cfg .= "    error_log('Database connection error detected.');\n";
+        $cfg .= "    if (!headers_sent()) { http_response_code(500); }\n";
+        $cfg .= "    exit('Database connection error.');\n";
+        $cfg .= "}\n";
         $cfg .= "?>\n";
 
         $cap = "<?php\nif (!defined('ALLOWED_ACCESS')) exit('Direct access not allowed.');\n";

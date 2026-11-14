@@ -5,7 +5,7 @@ require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     header("Location: {$base_path}login");
     exit;
 }

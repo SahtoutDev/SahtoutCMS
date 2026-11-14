@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'], ['admin', 'moderator'])) {
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
     $_SESSION['debug_errors'] = [translate('error_access_denied', 'Access denied.')];
     header("Location: {$base_path}login");
     exit;

@@ -25,7 +25,7 @@ if (isset($_GET['file'])) {
         exit;
     } else {
         $_SESSION['download_error'] = translate('download_error_file_not_found', 'File not found');
-        header("Location: {$base_path}download/woltk.php");
+        header("Location: {$base_path}download/");
         exit;
     }
 }

@@ -51,33 +51,41 @@ $query = "
     ) sis ON si.itemset_id = sis.itemset
     ORDER BY si.category, si.name
 ";
-$stmt = $site_db->prepare($query);
 $items = [];
-if ($stmt) {
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $items[$row['category']][] = $row;
+try {
+    $stmt = $site_db->prepare($query);
+    if ($stmt) {
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $items[$row['category']][] = $row;
+        }
+        $stmt->close();
+    } else {
+        error_log("Failed to prepare shop items query: " . $site_db->error);
     }
-    $stmt->close();
-} else {
-    error_log("Failed to prepare shop items query: " . $site_db->error);
+} catch (mysqli_sql_exception $e) {
+    error_log("Shop items query failed: " . $e->getMessage());
 }
 
 $points = 0;
 $tokens = 0;
 if (!empty($_SESSION['user_id'])) {
-    $stmt = $site_db->prepare("SELECT points, tokens FROM user_currencies WHERE account_id = ?");
-    if ($stmt) {
-        $stmt->bind_param("i", $_SESSION['user_id']);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $user_currency = $result->fetch_assoc();
-        $stmt->close();
-        $points = $user_currency ? (int)$user_currency['points'] : 0;
-        $tokens = $user_currency ? (int)$user_currency['tokens'] : 0;
-    } else {
-        error_log("Failed to prepare currency query: " . $site_db->error);
+    try {
+        $stmt = $site_db->prepare("SELECT points, tokens FROM user_currencies WHERE account_id = ?");
+        if ($stmt) {
+            $stmt->bind_param("i", $_SESSION['user_id']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user_currency = $result->fetch_assoc();
+            $stmt->close();
+            $points = $user_currency ? (int)$user_currency['points'] : 0;
+            $tokens = $user_currency ? (int)$user_currency['tokens'] : 0;
+        } else {
+            error_log("Failed to prepare currency query: " . $site_db->error);
+        }
+    } catch (mysqli_sql_exception $e) {
+        error_log("Shop currency query failed: " . $e->getMessage());
     }
 } else {
     error_log("No user_id in session");
@@ -85,17 +93,21 @@ if (!empty($_SESSION['user_id'])) {
 
 $characters = [];
 if (!empty($_SESSION['user_id'])) {
-    $stmt_chars = $char_db->prepare("SELECT guid, name FROM characters WHERE account = ?");
-    if ($stmt_chars) {
-        $stmt_chars->bind_param("i", $_SESSION['user_id']);
-        $stmt_chars->execute();
-        $result_chars = $stmt_chars->get_result();
-        while ($row = $result_chars->fetch_assoc()) {
-            $characters[] = ['id' => $row['guid'], 'name' => $row['name']];
+    try {
+        $stmt_chars = $char_db->prepare("SELECT guid, name FROM characters WHERE account = ?");
+        if ($stmt_chars) {
+            $stmt_chars->bind_param("i", $_SESSION['user_id']);
+            $stmt_chars->execute();
+            $result_chars = $stmt_chars->get_result();
+            while ($row = $result_chars->fetch_assoc()) {
+                $characters[] = ['id' => $row['guid'], 'name' => $row['name']];
+            }
+            $stmt_chars->close();
+        } else {
+            error_log("Failed to prepare characters query: " . $char_db->error);
         }
-        $stmt_chars->close();
-    } else {
-        error_log("Failed to prepare characters query: " . $char_db->error);
+    } catch (mysqli_sql_exception $e) {
+        error_log("Shop characters query failed: " . $e->getMessage());
     }
 } else {
     error_log("No characters fetched: user not logged in");

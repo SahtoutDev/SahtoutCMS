@@ -1,8 +1,9 @@
 <?php
-// Disable error reporting for production
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(0);
+// Production-safe error handling: log server-side, never corrupt JSON output
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
 require_once __DIR__ . '/../../includes/paths.php';
 define('ALLOWED_ACCESS', true);
 
@@ -10,10 +11,11 @@ define('ALLOWED_ACCESS', true);
 try {
     require_once $project_root . '/includes/config.php';
     require_once $project_root . '/includes/session.php';
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    error_log('pingback/mmohub.php: include failed: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(["status" => "error", "message" => "Include failed: " . $e->getMessage()]);
+    echo json_encode(["status" => "error", "message" => "Internal server error."]);
     exit;
 }
 
@@ -51,7 +53,6 @@ $ch = curl_init($check_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_TIMEOUT, 5);
 $response = curl_exec($ch);
-curl_close($ch);
 if ($response !== '1') {
     http_response_code(403);
     header('Content-Type: application/json');
@@ -179,11 +180,12 @@ try {
         "message" => "Vote logged successfully for $param (ID: $user_id).",
         "points_pending" => $reward_points
     ]);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $site_db->rollback();
+    error_log('pingback/mmohub.php: vote logging failed: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(["status" => "error", "message" => "Error logging vote: " . $e->getMessage()]);
+    echo json_encode(["status" => "error", "message" => "Error logging vote."]);
 }
 
 // Close database connections

@@ -1,6 +1,22 @@
 <?php
 define('ALLOWED_ACCESS', true);
 require_once __DIR__ . '/../includes/paths.php';
+
+// Install lock: this page handles redirects before including header.inc.php,
+// so the lock is enforced here as well as in header.inc.php.
+if (is_file(__DIR__ . '/install.lock')) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=UTF-8');
+    exit('Installer is locked because SahtoutCMS is already installed. Remove install/install.lock on the server to run a reinstall.');
+}
+
+// Check if skip was requested via GET parameter before any HTML output
+$skipPressed = isset($_GET['skip']) && $_GET['skip'] === 'yes';
+if ($skipPressed) {
+    header('Location: ' . ($base_path ?? '/') . 'install/step3_db');
+    exit;
+}
+
 include __DIR__ . '/header.inc.php';
 
 // Set current step for progress stepper
@@ -54,15 +70,6 @@ foreach ($optionalApacheModules as $mod) $optionalApacheResults[$mod] = isApache
 $allRequiredPass = $phpVersionPass 
     && !in_array(false, $requiredExtResults, true) 
     && !in_array(false, $requiredApacheResults, true);
-
-// Check if skip was requested via GET parameter
-$skipPressed = isset($_GET['skip']) && $_GET['skip'] === 'yes';
-
-// If skip was pressed, redirect to next step
-if ($skipPressed) {
-    header('Location: ' . ($base_path ?? '') . 'install/step3_db');
-    exit;
-}
 
 // Configurable XAMPP path for help content (keeping for reference)
 $xamppPath = 'C:\\xampp';

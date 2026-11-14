@@ -1,8 +1,9 @@
 <?php
-// Disable error reporting for production
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-error_reporting(0);
+// Production-safe error handling: log server-side, never corrupt JSON output
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
 require_once __DIR__ . '/../../includes/paths.php';
 define('ALLOWED_ACCESS', true);
 
@@ -10,18 +11,20 @@ define('ALLOWED_ACCESS', true);
 try {
     require_once $project_root . '/includes/config.php';
     require_once $project_root . '/includes/session.php';
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    error_log('pingback/private_server.php: include failed: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(["status" => "error", "message" => "Include failed: " . $e->getMessage()]);
+    echo json_encode(["status" => "error", "message" => "Internal server error."]);
     exit;
 }
 
 // Check database connection
 if (!$site_db || !$site_db instanceof mysqli || $site_db->connect_error) {
+    error_log('pingback/private_server.php: DB connection failed: ' . ($site_db ? $site_db->connect_error : 'No database connection object'));
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(["status" => "error", "message" => "Database connection failed: " . $site_db->connect_error]);
+    echo json_encode(["status" => "error", "message" => "Database connection failed."]);
     exit;
 }
 
@@ -198,11 +201,12 @@ try {
         "message" => "Vote logged and reward granted for $userid (ID: $user_id).",
         "points_added" => $reward_points
     ]);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $site_db->rollback();
+    error_log('pingback/private_server.php: vote logging failed: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: application/json');
-    echo json_encode(["status" => "error", "message" => "Error logging vote or granting reward: " . $e->getMessage()]);
+    echo json_encode(["status" => "error", "message" => "Error logging vote or granting reward."]);
 }
 
 // Close database connections

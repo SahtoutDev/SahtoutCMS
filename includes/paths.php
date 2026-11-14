@@ -7,7 +7,7 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
     $protocol = 'http://';
 }
 
-$host = $_SERVER['HTTP_HOST'];
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
 $projectFolder = str_replace($_SERVER['DOCUMENT_ROOT'], '', str_replace('\\', '/', __DIR__ . '/..'));
 

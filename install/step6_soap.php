@@ -12,44 +12,54 @@ $success = false;
 $soapConfigFile = __DIR__ . '/../includes/soap.conf.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $soapUrl  = $_POST['soap_url'] ?? 'http://127.0.0.1:7878';
-    $soapUser = $_POST['soap_user'] ?? '';
-    $soapPass = $_POST['soap_pass'] ?? '';
+    $soapUrl  = trim((string)($_POST['soap_url'] ?? 'http://127.0.0.1:7878'));
+    $soapUser = trim((string)($_POST['soap_user'] ?? ''));
+    $soapPass = (string)($_POST['soap_pass'] ?? '');
 
-    $stmt = $auth_db->prepare("SELECT id FROM account WHERE username = ?");
-    $stmt->bind_param('s', $soapUser);
-    $stmt->execute();
-    $stmt->bind_result($accountId);
-    $stmt->fetch();
-    $stmt->close();
+    try {
+        $accountId = null;
+        $stmt = $auth_db->prepare("SELECT id FROM account WHERE username = ?");
+        if ($stmt) {
+            $stmt->bind_param('s', $soapUser);
+            $stmt->execute();
+            $stmt->bind_result($accountId);
+            $stmt->fetch();
+            $stmt->close();
+        }
 
-    if (!$accountId) {
-        $error = sprintf(translate('err_soap_account_not_found', 'Account \'%s\' does not exist in Auth DB.'), htmlspecialchars($soapUser));
-    } else {
-        $stmt2 = $auth_db->prepare("SELECT gmlevel FROM account_access WHERE id = ? AND RealmID = -1");
-        $stmt2->bind_param('i', $accountId);
-        $stmt2->execute();
-        $stmt2->bind_result($gmLevel);
-        $stmt2->fetch();
-        $stmt2->close();
-
-        if (!$gmLevel || $gmLevel < 3) {
-            $error = sprintf(translate('err_soap_gm_level', 'Account \'%s\' exists but is not GM level 3.'), htmlspecialchars($soapUser));
+        if (!$accountId) {
+            $error = sprintf(translate('err_soap_account_not_found', 'Account \'%s\' does not exist in Auth DB.'), htmlspecialchars($soapUser));
         } else {
-            $configContent = "<?php
-if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }
+            $gmLevel = null;
+            $stmt2 = $auth_db->prepare("SELECT gmlevel FROM account_access WHERE id = ? AND RealmID = -1");
+            if ($stmt2) {
+                $stmt2->bind_param('i', $accountId);
+                $stmt2->execute();
+                $stmt2->bind_result($gmLevel);
+                $stmt2->fetch();
+                $stmt2->close();
+            }
 
-\$soap_url  = '$soapUrl';
-\$soap_user = '$soapUser';
-\$soap_pass = '$soapPass';
-?>";
-
-            if (file_put_contents($soapConfigFile, $configContent)) {
-                $success = true;
+            if (!$gmLevel || $gmLevel < 3) {
+                $error = sprintf(translate('err_soap_gm_level', 'Account \'%s\' exists but is not GM level 3.'), htmlspecialchars($soapUser));
             } else {
-                $error = translate('err_write_soap_config', 'Cannot write to') . " $soapConfigFile. " . translate('err_check_permissions', 'Check folder permissions.');
+                $configContent  = "<?php\n";
+                $configContent .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
+                $configContent .= "\$soap_url  = " . var_export($soapUrl, true) . ";\n";
+                $configContent .= "\$soap_user = " . var_export($soapUser, true) . ";\n";
+                $configContent .= "\$soap_pass = " . var_export($soapPass, true) . ";\n";
+                $configContent .= "?>\n";
+
+                if (file_put_contents($soapConfigFile, $configContent) !== false) {
+                    $success = true;
+                } else {
+                    $error = translate('err_write_soap_config', 'Cannot write to') . " $soapConfigFile. " . translate('err_check_permissions', 'Check folder permissions.');
+                }
             }
         }
+    } catch (mysqli_sql_exception $e) {
+        error_log('install/step6_soap.php: DB error: ' . $e->getMessage());
+        $error = translate('err_db_query', 'Database query error. Please check your database configuration.');
     }
 }
 ?>

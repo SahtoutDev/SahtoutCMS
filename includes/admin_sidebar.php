@@ -5,9 +5,11 @@ if (!defined('ALLOWED_ACCESS')) {
 }
 require_once __DIR__ . '/paths.php';
 
-if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['admin', 'moderator'], true)) {
+$current_role = (string)($_SESSION['role'] ?? '');
+if (!isset($_SESSION['user_id']) || !in_array($current_role, ['admin', 'moderator'], true)) {
     exit;
 }
+$is_admin = ($current_role === 'admin');
 $page_class = $page_class ?? '';
 
 // Determine active page based on URL path
@@ -98,10 +100,16 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
         animation: emberDrift 35s linear infinite;
     }
 
-    /* Sidebar container - fixed position */
+    /* The site header is fixed, so its real height is measured in JS and
+       published as --admin-header-h. Every piece of admin chrome hangs off
+       that one value, so the sidebar starts flush under the header at every
+       breakpoint instead of guessing a hard-coded offset. */
+    :root { --admin-header-h: 81px; }
+
+    /* Sidebar container - fixed position, directly below the site header */
     #adminSidebar {
         position: fixed;
-        top: 100px;
+        top: var(--admin-header-h);
         left: 0;
         bottom: 0;
         width: 280px;
@@ -119,15 +127,33 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
         transition: left 0.3s ease-in-out;
     }
 
-    /* Mobile overlay */
-    #sidebarOverlay {
-        transition: opacity 0.3s ease-in-out, pointer-events 0.3s ease-in-out;
+    /* The content column is a flex child (flex-1). Without min-width:0 a
+       flex item refuses to shrink below its content's intrinsic width, so a
+       wide table (or a 4-column filter grid) pushed the whole page sideways
+       instead of scrolling inside its own wrapper. */
+    .main-content-area { min-width: 0; }
+
+    /* Below lg the floating trigger sits over the content column, so reserve
+       its footprint instead of letting it cover the page title. */
+    @media (max-width: 1023px) {
+        body .main-content-area { padding-top: 4.5rem; }
     }
 
-    @media (max-width: 1023px) {
-        #adminSidebar {
-            top: 90px;
-        }
+    /* Desktop collapse must also reclaim the gutter. The page stylesheets
+       declare their own margin utilities in their own order, so the
+       collapsed state is enforced from a higher-specificity selector. */
+    @media (min-width: 1024px) {
+        html.admin-sidebar-collapsed .main-content-area { margin-left: 0; }
+    }
+
+    /* Mobile trigger + overlay line up with the sidebar edge */
+    #hamburgerBtn {
+        top: calc(var(--admin-header-h) + 0.75rem);
+    }
+
+    #sidebarOverlay {
+        top: var(--admin-header-h);
+        transition: opacity 0.3s ease-in-out, pointer-events 0.3s ease-in-out;
     }
 
     /* ============================================
@@ -288,6 +314,7 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
                 </a>
             </li>
             
+            <?php if ($is_admin): ?>
             <li>
                 <a class="group flex items-center gap-3 px-3 py-2.5 text-[0.85rem] font-semibold tracking-wide text-gray-400 bg-black/20 border-l-3 border-transparent hover:text-gray-200 hover:bg-[rgba(201,162,39,.08)] hover:border-[rgba(201,162,39,.4)] hover:translate-x-1 transition-all duration-200 relative clip-gaming <?php echo ($page_class === 'shop' || $active_page === 'shop') ? 'active-link' : ''; ?>" 
                    href="<?php echo $base_path; ?>admin/ashop">
@@ -311,6 +338,7 @@ if (strpos($current_path, 'admin/dashboard') !== false) {
                     <?php echo translate('admin_settings', 'Settings'); ?>
                 </a>
             </li>
+            <?php endif; ?>
 
             <!-- Divider -->
             <li class="my-3 px-2">
@@ -402,11 +430,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const hamburgerIcon = document.getElementById('hamburgerIcon');
     const mainContent = document.querySelector('.main-content-area');
     
+    // Keep the admin chrome aligned with the fixed site header: its height
+    // changes with the breakpoint and with the language switcher wrapping.
+    const siteHeader = document.querySelector('header.main-header') || document.querySelector('header');
+    function syncAdminHeaderOffset() {
+        let offset = 0;
+        if (siteHeader) {
+            const cs = window.getComputedStyle(siteHeader);
+            const fixed = cs.position === 'fixed' || cs.position === 'sticky';
+            offset = fixed ? Math.round(siteHeader.getBoundingClientRect().height) : 0;
+        }
+        document.documentElement.style.setProperty('--admin-header-h', offset + 'px');
+    }
+    syncAdminHeaderOffset();
+    window.addEventListener('load', syncAdminHeaderOffset);
+    if (siteHeader && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(syncAdminHeaderOffset).observe(siteHeader);
+    }
+
     let isSidebarOpen = localStorage.getItem('sidebarOpen') !== 'false';
     
     function updateDesktopState(open) {
         isSidebarOpen = open;
         localStorage.setItem('sidebarOpen', open);
+        // Single source of truth for the desktop gutter (see the CSS above).
+        document.documentElement.classList.toggle('admin-sidebar-collapsed', !open);
         
         if (window.innerWidth >= 1024) {
             if (open) {
@@ -477,6 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(function() {
+            syncAdminHeaderOffset();
             if (window.innerWidth >= 1024) {
                 if (!sidebar.classList.contains('sidebar-closed') && !isSidebarOpen) {
                     closeMobileSidebar();

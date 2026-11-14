@@ -395,22 +395,11 @@ Start:
 
 from the XAMPP Control Panel.
 
-### 🔒 Installer lock
+### 🔒 Post-Installation Security
 
-Open `http://localhost/install/` and complete the steps. The last step writes
-`install/install.lock`; from that moment every installer endpoint answers
-`403 Forbidden`, so the installer cannot be re-run by a visitor after the site
-goes live.
+Open `http://localhost/install/` and complete the steps. You can revisit `/install/` anytime during setup if you need to adjust your database, realm, mail, or SOAP configuration.
 
-To install again (or to run an authorized reinstallation) on a server you
-control:
-
-1. delete `install/install.lock`,
-2. run `http://localhost/install/` again,
-3. the lock is written again as soon as the installation finishes.
-
-`install/install.lock` is a runtime file: never commit it and never leave a
-live installation without it.
+Once you have verified that your website works properly, **delete the `install/` directory** from your server so visitors cannot re-run the installer on a live site.
 
 > XAMPP is optional and is mainly recommended for local Windows development.
 

@@ -4,6 +4,3 @@ logs/
 cache/
 #img/
 3dmodels/
-
-# Runtime install lock created by install/finish.php — never commit it.
-install/install.lock

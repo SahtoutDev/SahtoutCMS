@@ -9,13 +9,98 @@ $current_step = 4;
 $errors = [];
 $success = false;
 $realmsFile = $project_root . 'includes/realm_config.php';
-$defaultLogo = 'img/logos/realm1_logo.webp'; 
+$defaultLogo = 'img/logos/realm1_logo.webp';
+
+if (file_exists($realmsFile)) {
+    require_once $realmsFile;
+}
+if (!isset($realmlist) || !is_array($realmlist)) {
+    $realmlist = [];
+}
+
+$configFile = $project_root . 'includes/config.php';
+if (is_file($configFile)) {
+    require_once $configFile;
+}
+
+$authConn = ['db' => null, 'owned' => false, 'db_name' => ''];
+if (isset($auth_db) && $auth_db instanceof mysqli && !$auth_db->connect_error) {
+    $authConn['db'] = $auth_db;
+} elseif (function_exists('sahtout_resolve_auth_db_for_realm_config')) {
+    $authConn = sahtout_resolve_auth_db_for_realm_config();
+}
+
+$dbRealms = [];
+$authDbHandle = $authConn['db'] ?? null;
+if ($authDbHandle instanceof mysqli && !$authDbHandle->connect_error) {
+    try {
+        $qRealms = @$authDbHandle->query("SELECT `id`, `name`, `address`, `port` FROM `realmlist` ORDER BY `id` ASC");
+        if ($qRealms instanceof mysqli_result) {
+            while ($row = $qRealms->fetch_assoc()) {
+                $dbRealms[] = [
+                    'id'      => (int)($row['id'] ?? 0),
+                    'name'    => (string)($row['name'] ?? ''),
+                    'address' => (string)($row['address'] ?? '127.0.0.1'),
+                    'port'    => (int)($row['port'] ?? 8085),
+                ];
+            }
+            $qRealms->free();
+        }
+    } catch (Throwable $e) {
+        // Fallback to $realmlist / defaults if realmlist table is unavailable during early install.
+    }
+}
+
+$requestedRealmId = 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['realm_id'])) {
+    $requestedRealmId = (int)$_POST['realm_id'];
+} elseif (isset($_GET['realm_id'])) {
+    $requestedRealmId = (int)$_GET['realm_id'];
+}
+
+$selectedDbRealm = null;
+if (!empty($dbRealms)) {
+    foreach ($dbRealms as $r) {
+        if ($requestedRealmId > 0 && $r['id'] === $requestedRealmId) {
+            $selectedDbRealm = $r;
+            break;
+        }
+    }
+    if ($selectedDbRealm === null) {
+        $selectedDbRealm = $dbRealms[0];
+    }
+}
+
+$selectedRealmId = $selectedDbRealm
+    ? $selectedDbRealm['id']
+    : ($requestedRealmId > 0 ? $requestedRealmId : (int)($realmlist[0]['id'] ?? 1));
+
+$configuredRealm = null;
+foreach ($realmlist as $cfgRealm) {
+    if (is_array($cfgRealm) && (int)($cfgRealm['id'] ?? 0) === $selectedRealmId) {
+        $configuredRealm = $cfgRealm;
+        break;
+    }
+}
+if ($configuredRealm === null && $selectedRealmId === (int)($realmlist[0]['id'] ?? 1)) {
+    $configuredRealm = $realmlist[0] ?? null;
+}
+
+$currentRealm = [
+    'id'             => $selectedRealmId,
+    'name'           => $selectedDbRealm['name'] ?? ($configuredRealm['name'] ?? 'Sahtout Realm'),
+    'address'        => $selectedDbRealm['address'] ?? ($configuredRealm['address'] ?? '127.0.0.1'),
+    'port'           => $selectedDbRealm['port'] ?? (int)($configuredRealm['port'] ?? 8085),
+    'logo'           => $configuredRealm['logo'] ?? $defaultLogo,
+    'check_address'  => $configuredRealm['check_address'] ?? ($selectedDbRealm['address'] ?? ($configuredRealm['address'] ?? '127.0.0.1')),
+    'player_display' => $configuredRealm['player_display'] ?? 'all',
+];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $realmName = trim($_POST['realm_name'] ?? '');
     $realmIP = trim($_POST['realm_ip'] ?? '');
     $realmPort = (int) ($_POST['realm_port'] ?? 0);
-    $logo_path = $defaultLogo;
+    $logo_path = $currentRealm['logo'] ?: $defaultLogo;
 
     // Validate inputs
     if (empty($realmName)) {
@@ -31,35 +116,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Handle logo upload
     if (isset($_FILES['realm_logo']) && $_FILES['realm_logo']['error'] === UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['realm_logo']['tmp_name'];
-        $file_name = $_FILES['realm_logo']['name'];
-        $file_size = $_FILES['realm_logo']['size'];
-        $file_type = $_FILES['realm_logo']['type'];
+        $file_name = basename((string)$_FILES['realm_logo']['name']);
+        $file_size = (int)$_FILES['realm_logo']['size'];
         $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-        $allowed_exts = ['png', 'svg', 'jpg', 'jpeg', 'webp'];
+        $allowed_exts = ['png', 'jpg', 'jpeg', 'webp'];
         $max_size = 2 * 1024 * 1024; // 2MB
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detected_mime = $finfo ? (string)finfo_file($finfo, $file_tmp) : '';
+        if ($finfo) {
+            finfo_close($finfo);
+        }
 
         if ($file_size > $max_size) {
             $errors[] = "❌ " . translate('error_realm_logo_too_large', 'realm emblem size exceeds 2MB.');
-        } elseif (!in_array($file_ext, $allowed_exts)) {
-            $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem format. Only PNG, SVG, JPG, or WebP permitted.');
+        } elseif (!in_array($file_ext, $allowed_exts, true) || preg_match('/\.(php[0-9]?|phtml|phar|cgi|pl|py|sh|bat|cmd|exe|dll|htaccess)/i', $file_name)) {
+            $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem format. Only PNG, JPG, or WebP permitted.');
         } else {
-            // Validate MIME
+            // Validate server-detected MIME and actual file content
             $mimeValid = false;
+            $safe_ext = '';
             switch ($file_ext) {
-                case 'png': $mimeValid = $file_type === 'image/png'; break;
+                case 'png':
+                    $mimeValid = ($detected_mime === 'image/png') && (@getimagesize($file_tmp) !== false);
+                    $safe_ext = 'png';
+                    break;
                 case 'jpg':
-                case 'jpeg': $mimeValid = in_array($file_type, ['image/jpeg','image/jpg']); break;
-                case 'svg': $mimeValid = $file_type === 'image/svg+xml'; break;
-                case 'webp': $mimeValid = $file_type === 'image/webp'; break;
+                case 'jpeg':
+                    $mimeValid = ($detected_mime === 'image/jpeg') && (@getimagesize($file_tmp) !== false);
+                    $safe_ext = 'jpg';
+                    break;
+                case 'webp':
+                    $mimeValid = ($detected_mime === 'image/webp') && (@getimagesize($file_tmp) !== false);
+                    $safe_ext = 'webp';
+                    break;
             }
-            if (!$mimeValid) {
-                $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem MIME type for ' . strtoupper($file_ext));
+            if (!$mimeValid || $safe_ext === '') {
+                $errors[] = "❌ " . translate('error_invalid_realm_logo_type', 'Invalid emblem MIME type or unsafe file content for ' . strtoupper($file_ext));
             } else {
                 $upload_dir = $project_root . 'img/logos/';
                 if (!is_dir($upload_dir) || !is_writable($upload_dir)) {
                     $errors[] = "❌ " . translate('error_realm_logo_upload_failed', 'Emblem upload directory is inaccessible or not writable.');
                 } else {
-                    $new_file_name = 'realm_logo.' . $file_ext;
+                    $new_file_name = 'realm_logo_' . $selectedRealmId . '.' . $safe_ext;
                     $destination = $upload_dir . $new_file_name;
                     if (move_uploaded_file($file_tmp, $destination)) {
                         $logo_path = "img/logos/$new_file_name"; 
@@ -71,31 +170,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Save realm_config.php if no errors
+    // Save realmlist + realm_config.php if no errors
     if (empty($errors)) {
-        $newRealmList = [
-            [
-                'id' => 1,
-                'name' => $realmName,
-                'address' => $realmIP,
-                'port' => $realmPort,
-                'logo' => $logo_path
-            ]
+        if ($authDbHandle instanceof mysqli && !$authDbHandle->connect_error && $selectedRealmId > 0) {
+            try {
+                $stmt = @$authDbHandle->prepare("UPDATE `realmlist` SET `name` = ?, `address` = ?, `port` = ? WHERE `id` = ? LIMIT 1");
+                if ($stmt) {
+                    $stmt->bind_param('ssii', $realmName, $realmIP, $realmPort, $selectedRealmId);
+                    @$stmt->execute();
+                    $stmt->close();
+                }
+            } catch (Throwable $e) {
+                // Keep installer resilient if realmlist update fails; realm_config.php still saves.
+            }
+        }
+
+        $updatedEntry = [
+            'id'             => $selectedRealmId,
+            'name'           => $realmName,
+            'address'        => $realmIP,
+            'check_address'  => $currentRealm['check_address'] !== '' ? $currentRealm['check_address'] : $realmIP,
+            'port'           => $realmPort,
+            'logo'           => $logo_path,
+            'player_display' => $currentRealm['player_display'] ?: 'all',
         ];
 
-        $configPhp  = "<?php\n";
-        $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
-        $configPhp .= '$realmlist = ' . var_export($newRealmList, true) . ";\n";
+        $newRealmList = [];
+        $replaced = false;
+        foreach ($realmlist as $existingEntry) {
+            if (!is_array($existingEntry)) {
+                continue;
+            }
+            if ((int)($existingEntry['id'] ?? 1) === $selectedRealmId && !$replaced) {
+                $newRealmList[] = $updatedEntry;
+                $replaced = true;
+            } else {
+                $newRealmList[] = $existingEntry;
+            }
+        }
+        if (!$replaced) {
+            $newRealmList[] = $updatedEntry;
+        }
+
+        if (function_exists('sahtout_sync_realmlist')) {
+            $newRealmList = sahtout_sync_realmlist($newRealmList);
+        }
 
         $configDir = dirname($realmsFile);
         if (!is_writable($configDir)) {
             $errors[] = "❌ " . sprintf(translate('err_config_dir_not_writable_realm', 'Configuration directory is not writable: %s'), $configDir);
-        } elseif (file_put_contents($realmsFile, $configPhp) === false) {
-            $errors[] = "❌ " . sprintf(translate('err_write_realm_config', 'Cannot write realm configuration file: %s'), $realmsFile);
         } else {
-            $success = true;
+            $written = false;
+            if (function_exists('sahtout_write_realm_config_file')) {
+                $written = sahtout_write_realm_config_file($realmsFile, $newRealmList);
+            } else {
+                $configPhp  = "<?php\n";
+                $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
+                $configPhp .= '$realmlist = ' . var_export($newRealmList, true) . ";\n";
+                $written = file_put_contents($realmsFile, $configPhp) !== false;
+            }
+
+            if (!$written) {
+                $errors[] = "❌ " . sprintf(translate('err_write_realm_config', 'Cannot write realm configuration file: %s'), $realmsFile);
+            } else {
+                $success = true;
+                $realmlist = $newRealmList;
+                $currentRealm = array_merge($currentRealm, $updatedEntry);
+            }
         }
     }
+}
+
+if (!empty($authConn['owned']) && ($authDbHandle instanceof mysqli)) {
+    @$authDbHandle->close();
 }
 ?>
 
@@ -249,6 +396,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <!-- Form -->
             <?php if (!$success): ?>
                 <form method="post" enctype="multipart/form-data" class="space-y-5">
+                    <input type="hidden" name="realm_id" value="<?php echo (int)$selectedRealmId; ?>">
+
+                    <?php if (count($dbRealms) > 1): ?>
+                        <div>
+                            <label for="realm_selector" class="block text-xs font-medium text-slate-400 mb-1 uppercase tracking-wider">
+                                <i class="fas fa-server text-gold-400 mr-1"></i>
+                                <?php echo translate('label_select_realm', 'Select Realm'); ?>
+                            </label>
+                            <select id="realm_selector"
+                                    onchange="if (this.value) { window.location.search = '?realm_id=' + encodeURIComponent(this.value); }"
+                                    class="w-full bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all text-sm">
+                                <?php foreach ($dbRealms as $rItem): ?>
+                                    <option value="<?php echo (int)$rItem['id']; ?>" <?php echo ((int)$rItem['id'] === $selectedRealmId) ? 'selected' : ''; ?>>
+                                        #<?php echo (int)$rItem['id']; ?> — <?php echo htmlspecialchars($rItem['name'] ?: ('Realm ' . $rItem['id']), ENT_QUOTES, 'UTF-8'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                     
                     <!-- Realm Name -->
                     <div>
@@ -261,7 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <i class="fas fa-tag text-sm"></i>
                             </span>
                             <input id="realm_name" type="text" name="realm_name" 
-                                   value="<?php echo htmlspecialchars($_POST['realm_name'] ?? 'Sahtout Realm'); ?>"
+                                   value="<?php echo htmlspecialchars($_POST['realm_name'] ?? $currentRealm['name'], ENT_QUOTES, 'UTF-8'); ?>"
                                    class="w-full bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all placeholder-slate-500 text-sm"
                                    required placeholder="Enter realm name">
                         </div>
@@ -278,7 +444,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <i class="fas fa-network-wired text-sm"></i>
                             </span>
                             <input id="realm_ip" type="text" name="realm_ip" 
-                                   value="<?php echo htmlspecialchars($_POST['realm_ip'] ?? '127.0.0.1'); ?>"
+                                   value="<?php echo htmlspecialchars($_POST['realm_ip'] ?? $currentRealm['address'], ENT_QUOTES, 'UTF-8'); ?>"
                                    class="w-full bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all placeholder-slate-500 text-sm"
                                    required placeholder="127.0.0.1">
                         </div>
@@ -295,7 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <i class="fas fa-plug text-sm"></i>
                             </span>
                             <input id="realm_port" type="number" name="realm_port" 
-                                   value="<?php echo htmlspecialchars($_POST['realm_port'] ?? '8085'); ?>"
+                                   value="<?php echo htmlspecialchars((string)($_POST['realm_port'] ?? $currentRealm['port']), ENT_QUOTES, 'UTF-8'); ?>"
                                    class="w-full bg-slate-900/60 border border-slate-600 text-slate-200 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all placeholder-slate-500 text-sm"
                                    required placeholder="8085">
                         </div>

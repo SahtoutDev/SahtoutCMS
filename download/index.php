@@ -4,6 +4,7 @@ require_once __DIR__ . '/../includes/paths.php';
 require_once $project_root . 'includes/session.php';
 require_once $project_root . 'languages/language.php';
 require_once $project_root . 'includes/config.settings.php';
+require_once $project_root . 'includes/download_links_helper.php';
 
 // Handle download request if submitted
 if (isset($_GET['file'])) {
@@ -52,6 +53,10 @@ if (is_dir($download_dir)) {
         }
     }
 }
+
+$download_links = load_download_links();
+$external_links = $download_links['external'];
+$addon_links = $download_links['addons'];
 
 $page_class = 'download';
 $page_title = $site_title_name . " " . translate('download_title', 'Download');
@@ -390,38 +395,31 @@ include_once $project_root . 'includes/header.php';
                             <i class="fas fa-globe text-[#f2cf5b] mr-2"></i>
                             <?php echo translate('external_mirrors', 'External Mirrors'); ?>
                         </h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="text-center p-6 bg-black/20 rounded-lg border border-[#f2cf5b]/10">
-                                <div class="text-5xl text-[#f2cf5b] mb-3">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-white font-['Cinzel']">MEGA</h3>
-                                <p class="text-gray-400 text-sm mt-1">Fast & secure cloud hosting</p>
-                                <a href="https://mega.nz" target="_blank" class="external-link-btn mt-4">
-                                    <i class="fas fa-external-link-alt"></i> Open MEGA
-                                </a>
+                        <?php if (empty($external_links)): ?>
+                            <p class="text-center text-gray-400 py-4"><?php echo translate('no_external_mirrors', 'No external mirrors available right now.'); ?></p>
+                        <?php else: ?>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+                                <?php foreach ($external_links as $item): ?>
+                                    <div class="text-center p-6 bg-black/20 rounded-lg border border-[#f2cf5b]/10 w-full max-w-sm flex flex-col items-center">
+                                        <div class="text-5xl text-[#f2cf5b] mb-3">
+                                            <i class="<?php echo htmlspecialchars($item['icon'] ?? 'fas fa-external-link-alt', ENT_QUOTES, 'UTF-8'); ?>"></i>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-white font-['Cinzel']">
+                                            <?php echo htmlspecialchars($item['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                                        </h3>
+                                        <?php if (!empty($item['description'])): ?>
+                                            <p class="text-gray-400 text-sm mt-1">
+                                                <?php echo htmlspecialchars($item['description'], ENT_QUOTES, 'UTF-8'); ?>
+                                            </p>
+                                        <?php endif; ?>
+                                        <a href="<?php echo htmlspecialchars($item['url'] ?? '#', ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="external-link-btn mt-4">
+                                            <i class="fas fa-external-link-alt"></i>
+                                            <?php echo htmlspecialchars($item['button_text'] ?? 'Open Link', ENT_QUOTES, 'UTF-8'); ?>
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
-                            <div class="text-center p-6 bg-black/20 rounded-lg border border-[#f2cf5b]/10">
-                                <div class="text-5xl text-[#f2cf5b] mb-3">
-                                    <i class="fas fa-fire"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-white font-['Cinzel']">MediaFire</h3>
-                                <p class="text-gray-400 text-sm mt-1">Reliable file sharing</p>
-                                <a href="https://mediafire.com" target="_blank" class="external-link-btn mt-4">
-                                    <i class="fas fa-external-link-alt"></i> Open MediaFire
-                                </a>
-                            </div>
-                            <div class="text-center p-6 bg-black/20 rounded-lg border border-[#f2cf5b]/10">
-                                <div class="text-5xl text-[#f2cf5b] mb-3">
-                                    <i class="fas fa-file-archive"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-white font-['Cinzel']">Gofile</h3>
-                                <p class="text-gray-400 text-sm mt-1">Instant free downloads</p>
-                                <a href="https://gofile.io" target="_blank" class="external-link-btn mt-4">
-                                    <i class="fas fa-external-link-alt"></i> Open Gofile
-                                </a>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -432,38 +430,31 @@ include_once $project_root . 'includes/header.php';
                             <i class="fas fa-puzzle-piece text-[#f2cf5b] mr-2"></i>
                             <?php echo translate('essential_addons', 'Essential Addons'); ?>
                         </h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div class="addon-card panel p-6">
-                                <div class="icon-wrap">
-                                    <i class="fas fa-skull"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-white font-['Cinzel']">Deadly Boss Mods</h3>
-                                <p class="text-gray-400 text-sm mt-1">Raid & dungeon alerts</p>
-                                <button onclick="window.open('https://curseforge.com/wow/addons/deadly-boss-mods-dbm', '_blank')" class="external-link-btn mt-4">
-                                    <i class="fas fa-download"></i> Get DBM
-                                </button>
+                        <?php if (empty($addon_links)): ?>
+                            <p class="text-center text-gray-400 py-4"><?php echo translate('no_addons_available', 'No addons available right now.'); ?></p>
+                        <?php else: ?>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <?php foreach ($addon_links as $item): ?>
+                                    <div class="addon-card panel p-6 flex flex-col items-center">
+                                        <div class="icon-wrap">
+                                            <i class="<?php echo htmlspecialchars($item['icon'] ?? 'fas fa-puzzle-piece', ENT_QUOTES, 'UTF-8'); ?>"></i>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-white font-['Cinzel']">
+                                            <?php echo htmlspecialchars($item['title'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                                        </h3>
+                                        <?php if (!empty($item['description'])): ?>
+                                            <p class="text-gray-400 text-sm mt-1">
+                                                <?php echo htmlspecialchars($item['description'], ENT_QUOTES, 'UTF-8'); ?>
+                                            </p>
+                                        <?php endif; ?>
+                                        <a href="<?php echo htmlspecialchars($item['url'] ?? '#', ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="external-link-btn mt-4">
+                                            <i class="fas fa-download"></i>
+                                            <?php echo htmlspecialchars($item['button_text'] ?? 'Download Addon', ENT_QUOTES, 'UTF-8'); ?>
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
-                            <div class="addon-card panel p-6">
-                                <div class="icon-wrap">
-                                    <i class="fas fa-magic"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-white font-['Cinzel']">WeakAuras</h3>
-                                <p class="text-gray-400 text-sm mt-1">Custom UI triggers</p>
-                                <button onclick="window.open('https://wago.io', '_blank')" class="external-link-btn mt-4">
-                                    <i class="fas fa-eye"></i> Browse Auras
-                                </button>
-                            </div>
-                            <div class="addon-card panel p-6">
-                                <div class="icon-wrap">
-                                    <i class="fas fa-chart-bar"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-white font-['Cinzel']">Details!</h3>
-                                <p class="text-gray-400 text-sm mt-1">DPS & combat analytics</p>
-                                <button onclick="window.open('https://curseforge.com/wow/addons/details', '_blank')" class="external-link-btn mt-4">
-                                    <i class="fas fa-rocket"></i> Install
-                                </button>
-                            </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

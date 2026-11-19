@@ -1,0 +1,54 @@
+{
+    "external": [
+        {
+            "id": "ext_2c1b922df2",
+            "title": "Github",
+            "description": "Download The CMS",
+            "url": "https://github.com/Sahtoutdev/SahtoutCMS",
+            "button_text": "Start your own Server using SAHTOUTCMS",
+            "icon": "fa-download"
+        },
+        {
+            "id": "ext_7a91c4e01b",
+            "title": "Google Drive (WotLK 3.3.5a)",
+            "description": "Full Wrath of the Lich King 3.3.5a (12340) game client mirror",
+            "url": "https://drive.google.com/",
+            "button_text": "Download via Google Drive",
+            "icon": "fab fa-google-drive"
+        },
+        {
+            "id": "ext_94d3b81f20",
+            "title": "MEGA Mirror (3.3.5a Client)",
+            "description": "High-speed compressed WotLK 3.3.5a client archive",
+            "url": "https://mega.nz/",
+            "button_text": "Download via MEGA",
+            "icon": "fas fa-cloud-download-alt"
+        }
+    ],
+    "addons": [
+        {
+            "id": "addon_4e82a19c3d",
+            "title": "Deadly Boss Mods (DBM)",
+            "description": "Essential raid & dungeon boss timers for WotLK 3.3.5a",
+            "url": "https://www.curseforge.com/wow/addons/deadly-boss-mods",
+            "button_text": "Download DBM",
+            "icon": "fas fa-skull"
+        },
+        {
+            "id": "addon_b51f70c84a",
+            "title": "Recount",
+            "description": "Real-time DPS, healing, and threat meter for 3.3.5a raids",
+            "url": "https://www.curseforge.com/wow/addons/recount",
+            "button_text": "Download Recount",
+            "icon": "fas fa-chart-bar"
+        },
+        {
+            "id": "addon_c309e2d67f",
+            "title": "Bagnon",
+            "description": "All-in-one inventory, bank, and guild bank frame for WotLK",
+            "url": "https://www.curseforge.com/wow/addons/bagnon",
+            "button_text": "Download Bagnon",
+            "icon": "fas fa-briefcase"
+        }
+    ]
+}

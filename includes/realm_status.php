@@ -485,8 +485,11 @@ function formatServerUptime($seconds) {
     }
 </style>
 
+<?php
+$displayRealms = (!empty($realmlist) && is_array($realmlist)) ? [reset($realmlist)] : [];
+?>
 <div class="space-y-3">
-    <?php foreach ($realmlist as $realm): ?>
+    <?php foreach ($displayRealms as $realm): ?>
         <?php
         $realmStatus = getRealmStatusData($realm, $char_db, $auth_db);
 

@@ -59,11 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['realm_id'])) {
 }
 
 $selectedDbRealm = null;
+$configuredDefaultId = (int)($realmlist[0]['id'] ?? 0);
 if (!empty($dbRealms)) {
-    foreach ($dbRealms as $r) {
-        if ($requestedRealmId > 0 && $r['id'] === $requestedRealmId) {
-            $selectedDbRealm = $r;
-            break;
+    $targetId = $requestedRealmId > 0 ? $requestedRealmId : $configuredDefaultId;
+    if ($targetId > 0) {
+        foreach ($dbRealms as $r) {
+            if ($r['id'] === $targetId) {
+                $selectedDbRealm = $r;
+                break;
+            }
         }
     }
     if ($selectedDbRealm === null) {
@@ -195,44 +199,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'player_display' => $currentRealm['player_display'] ?: 'all',
         ];
 
-        $newRealmList = [];
-        $replaced = false;
-        foreach ($realmlist as $existingEntry) {
-            if (!is_array($existingEntry)) {
-                continue;
-            }
-            if ((int)($existingEntry['id'] ?? 1) === $selectedRealmId && !$replaced) {
-                $newRealmList[] = $updatedEntry;
-                $replaced = true;
-            } else {
-                $newRealmList[] = $existingEntry;
-            }
-        }
-        if (!$replaced) {
-            $newRealmList[] = $updatedEntry;
-        }
-
-        if (function_exists('sahtout_sync_realmlist')) {
-            $newRealmList = sahtout_sync_realmlist($newRealmList);
-        }
+        $newRealmList = [$updatedEntry];
 
         $configDir = dirname($realmsFile);
         if (!is_writable($configDir)) {
             $errors[] = "❌ " . sprintf(translate('err_config_dir_not_writable_realm', 'Configuration directory is not writable: %s'), $configDir);
         } else {
-            $written = false;
-            if (function_exists('sahtout_write_realm_config_file')) {
-                $written = sahtout_write_realm_config_file($realmsFile, $newRealmList);
-            } else {
-                $configPhp  = "<?php\n";
-                $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
-                $configPhp .= '$realmlist = ' . var_export($newRealmList, true) . ";\n";
-                $written = file_put_contents($realmsFile, $configPhp) !== false;
-            }
+            $configPhp  = "<?php\n";
+            $configPhp .= "if (!defined('ALLOWED_ACCESS')) { exit('Forbidden'); }\n\n";
+            $configPhp .= '$realmlist = ' . var_export($newRealmList, true) . ";\n";
+            $written = file_put_contents($realmsFile, $configPhp, LOCK_EX) !== false;
 
             if (!$written) {
                 $errors[] = "❌ " . sprintf(translate('err_write_realm_config', 'Cannot write realm configuration file: %s'), $realmsFile);
             } else {
+                if (function_exists('opcache_invalidate')) {
+                    opcache_invalidate($realmsFile, true);
+                }
                 $success = true;
                 $realmlist = $newRealmList;
                 $currentRealm = array_merge($currentRealm, $updatedEntry);
